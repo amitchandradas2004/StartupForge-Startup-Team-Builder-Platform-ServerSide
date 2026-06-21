@@ -39,19 +39,26 @@ async function run() {
       const result = await startupCollection.insertOne(startup);
       res.send(result);
     });
-
     app.get("/api/startups", async (req, res) => {
       const query = {};
       if (req.query.founderEmail) {
         query.founderEmail = req.query.founderEmail;
       }
-      // if (req.query.status) {
-      //   query.status = req.query.status;
-      // }
       const cursor = startupCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
+    // Update startup
+    app.patch("/api/startups/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedStartups = req.body;
+      const result = await startupCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { ...updatedStartups } },
+      );
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
