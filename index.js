@@ -58,7 +58,22 @@ async function run() {
       );
       res.send(result);
     });
+    //delete startup
+    app.delete("/api/startups/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const result = await startupCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
 
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({
+          message: "Failed to delete startup",
+          error: error.message,
+        });
+      }
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
