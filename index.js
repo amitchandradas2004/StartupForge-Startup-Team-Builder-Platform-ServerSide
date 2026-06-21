@@ -5,7 +5,6 @@ const express = require("express");
 const dontenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-
 dontenv.config();
 
 const uri = process.env.MONGODB_URI;
@@ -31,8 +30,15 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    const db = client.db("startup-forge");
+    const db = client.db(process.env.DB_NAME);
+    const startupCollection = db.collection("startups");
 
+    // startups related api(founder)
+    app.post("/startups", async (req, res) => {
+      const startup = req.body;
+      const result = await startupCollection.insertOne(startup);
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
