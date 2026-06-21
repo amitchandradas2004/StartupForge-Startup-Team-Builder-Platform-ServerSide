@@ -34,9 +34,22 @@ async function run() {
     const startupCollection = db.collection("startups");
 
     // startups related api(founder)
-    app.post("/startups", async (req, res) => {
+    app.post("/api/startups", async (req, res) => {
       const startup = req.body;
       const result = await startupCollection.insertOne(startup);
+      res.send(result);
+    });
+
+    app.get("/api/startups", async (req, res) => {
+      const query = {};
+      if (req.query.founderEmail) {
+        query.founderEmail = req.query.founderEmail;
+      }
+      // if (req.query.status) {
+      //   query.status = req.query.status;
+      // }
+      const cursor = startupCollection.find(query);
+      const result = await cursor.toArray();
       res.send(result);
     });
     await client.db("admin").command({ ping: 1 });
