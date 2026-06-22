@@ -74,12 +74,19 @@ async function run() {
         });
       }
     });
-
     // Opportynity Posting
-
     app.post("/api/opportunities", async (req, res) => {
       const opportunity = req.body;
       const result = await opportunitieCollection.insertOne(opportunity);
+      res.send(result);
+    });
+    app.get("/api/opportunities", async (req, res) => {
+      const query = {};
+      if (req.query.founderEmail) {
+        query.founderEmail = req.query.founderEmail;
+      }
+      const cursor = opportunitieCollection.find(query);
+      const result = await cursor.toArray();
       res.send(result);
     });
     await client.db("admin").command({ ping: 1 });
