@@ -85,6 +85,23 @@ async function run() {
       );
       res.send(result);
     });
+
+    // Delete opportunity
+    app.delete("/api/opportunities/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const result = await opportunitieCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({
+          message: "Failed to delete startup",
+          error: error.message,
+        });
+      }
+    });
     // Opportynity Posting
     app.post("/api/opportunities", async (req, res) => {
       const opportunity = req.body;
@@ -100,6 +117,7 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
