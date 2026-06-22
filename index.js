@@ -48,6 +48,11 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+    //borwse startups
+    app.get("/api/startups", async (req, res) => {
+      const result = await startupCollection.find();
+      res.send(result);
+    });
     // Update startup
     app.patch("/api/startups/:id", async (req, res) => {
       const { id } = req.params;
@@ -123,8 +128,6 @@ async function run() {
       res.send(result);
     });
 
-
-    
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
