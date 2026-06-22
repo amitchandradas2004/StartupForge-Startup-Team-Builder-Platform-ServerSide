@@ -32,7 +32,7 @@ async function run() {
     await client.connect();
     const db = client.db(process.env.DB_NAME);
     const startupCollection = db.collection("startups");
-
+    const opportunitieCollection = db.collection("opportunities");
     // startups related api(founder)
     app.post("/api/startups", async (req, res) => {
       const startup = req.body;
@@ -73,6 +73,14 @@ async function run() {
           error: error.message,
         });
       }
+    });
+
+    // Opportynity Posting
+
+    app.post("/api/opportunities", async (req, res) => {
+      const opportunity = req.body;
+      const result = await opportunitieCollection.insertOne(opportunity);
+      res.send(result);
     });
     await client.db("admin").command({ ping: 1 });
     console.log(
