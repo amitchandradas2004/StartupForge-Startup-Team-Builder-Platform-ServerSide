@@ -74,6 +74,17 @@ async function run() {
         });
       }
     });
+
+    // Opportynity Updating
+    app.patch("/api/opportunities/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedOpportunity = req.body;
+      const result = await opportunitieCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { ...updatedOpportunity } },
+      );
+      res.send(result);
+    });
     // Opportynity Posting
     app.post("/api/opportunities", async (req, res) => {
       const opportunity = req.body;
