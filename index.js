@@ -33,6 +33,7 @@ async function run() {
     const db = client.db(process.env.DB_NAME);
     const startupCollection = db.collection("startups");
     const opportunitieCollection = db.collection("opportunities");
+    const applicationCollection = db.collection("applications");
     // startups related api(founder)
     app.post("/api/startups", async (req, res) => {
       const startup = req.body;
@@ -79,7 +80,6 @@ async function run() {
         });
       }
     });
-
     // Opportynity Updating
     app.patch("/api/opportunities/:id", async (req, res) => {
       const { id } = req.params;
@@ -90,7 +90,6 @@ async function run() {
       );
       res.send(result);
     });
-
     // Delete opportunity
     app.delete("/api/opportunities/:id", async (req, res) => {
       try {
@@ -135,7 +134,16 @@ async function run() {
       });
       res.send(result);
     });
-
+    // applications API
+    app.post("/api/applications", async (req, res) => {
+      const application = req.body;
+      const newApplication = {
+        ...application,
+        createdAt: new Date(),
+      };
+      const result = await applicationCollection.insertOne(newApplication);
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
