@@ -154,6 +154,11 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+    //get all applications
+    app.get("/api/applications", async (req, res) => {
+      const result = await applicationCollection.find();
+      res.send(result);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
