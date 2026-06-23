@@ -34,6 +34,31 @@ async function run() {
     const startupCollection = db.collection("startups");
     const opportunitieCollection = db.collection("opportunities");
     const applicationCollection = db.collection("applications");
+    const userCollection = db.collection("user");
+
+    //profile update
+    app.patch("/api/user", async (req, res) => {
+      const { email, ...updatedData } = req.body;
+
+      const result = await userCollection.updateOne(
+        { email },
+        { $set: updatedData },
+      );
+
+      res.send(result);
+    });
+    app.get("/api/user/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+
+        const user = await userCollection.findOne({ email });
+
+        return res.send(user); // MUST be user, not result
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({ error: "Server error" });
+      }
+    });
     // startups related api(founder)
     app.post("/api/startups", async (req, res) => {
       const startup = req.body;
