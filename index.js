@@ -127,6 +127,14 @@ async function run() {
       const result = await opportunitieCollection.find();
       res.send(result);
     });
+    //opportunity details
+    app.get("/api/opportunities/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await opportunitieCollection.findOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
