@@ -79,7 +79,6 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
-
     //admin update startup status
     app.patch("/api/startups:id", async (req, res) => {
       const id = req.params.id;
@@ -93,7 +92,6 @@ async function run() {
       const result = await startupCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
-
     //borwse startups
     app.get("/api/startups", async (req, res) => {
       const result = await startupCollection.find();
@@ -224,6 +222,20 @@ async function run() {
         },
       };
       const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    //founder application manage
+    app.patch("/api/applications/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedApplication = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: updatedApplication.status,
+        },
+      };
+      const result = await applicationCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
     //Transactions api
