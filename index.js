@@ -213,7 +213,19 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
-
+    //admin update user status
+    app.patch("/api/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedUser = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: updatedUser.status,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
     //Transactions api
     // app.get("/api/transactions", async (req, res) => {
     //   const result = await transactionCollection.find().toArray();
