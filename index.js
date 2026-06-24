@@ -5,6 +5,7 @@ const express = require("express");
 const dontenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { cursorTo } = require("node:readline");
 dontenv.config();
 
 const uri = process.env.MONGODB_URI;
@@ -169,21 +170,26 @@ async function run() {
       const result = await applicationCollection.insertOne(newApplication);
       res.send(result);
     });
-    //get applications
+    //get collaborator / founder all  applications
     app.get("/api/applications", async (req, res) => {
       const query = {};
       if (req.query.applicantEmail) {
         query.applicantEmail = req.query.applicantEmail;
       }
+      if (req.query.founderEmail) {
+        query.founderEmail = req.query.founderEmail;
+      }
       const cursor = applicationCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
+
     //get all applications
     app.get("/api/applications", async (req, res) => {
       const result = await applicationCollection.find();
       res.send(result);
     });
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
