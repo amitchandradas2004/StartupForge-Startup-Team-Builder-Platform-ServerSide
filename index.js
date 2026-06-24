@@ -36,7 +36,7 @@ async function run() {
     const opportunitieCollection = db.collection("opportunities");
     const applicationCollection = db.collection("applications");
     const userCollection = db.collection("user");
-
+    const transactionCollection = db.collection("transactions");
     //profile update
     app.patch("/api/user", async (req, res) => {
       const { email, ...updatedData } = req.body;
@@ -62,7 +62,11 @@ async function run() {
     });
     // startups related api(founder)
     app.post("/api/startups", async (req, res) => {
-      const startup = req.body;
+      const startup = {
+        ...req.body,
+        status: req.body.status || "pending",
+        createdAt: new Date(),
+      };
       const result = await startupCollection.insertOne(startup);
       res.send(result);
     });
@@ -75,6 +79,21 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+
+    //admin update startup status
+    app.patch("/api/startups:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedStartup = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          status: updatedStartup.status,
+        },
+      };
+      const result = await startupCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
     //borwse startups
     app.get("/api/startups", async (req, res) => {
       const result = await startupCollection.find();
@@ -194,6 +213,12 @@ async function run() {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
+
+    //Transactions api
+    // app.get("/api/transactions", async (req, res) => {
+    //   const result = await transactionCollection.find().toArray();
+    //   res.send(result);
+    // });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
