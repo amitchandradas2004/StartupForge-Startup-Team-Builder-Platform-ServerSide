@@ -37,6 +37,7 @@ async function run() {
     const applicationCollection = db.collection("applications");
     const userCollection = db.collection("user");
     const transactionCollection = db.collection("transactions");
+
     //profile update
     app.patch("/api/user", async (req, res) => {
       const { email, ...updatedData } = req.body;
@@ -200,7 +201,6 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
-
     //get all applications
     app.get("/api/applications", async (req, res) => {
       const result = await applicationCollection.find();
@@ -224,7 +224,6 @@ async function run() {
       const result = await userCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
-
     //founder application manage
     app.patch("/api/applications/:id", async (req, res) => {
       const id = req.params.id;
@@ -238,11 +237,52 @@ async function run() {
       const result = await applicationCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
-    //Transactions api
-    // app.get("/api/transactions", async (req, res) => {
-    //   const result = await transactionCollection.find().toArray();
-    //   res.send(result);
-    // });
+    // Transactions api
+    app.get("/api/transactions", async (req, res) => {
+      const result = await transactionCollection.find().toArray();
+      res.send(result);
+    });
+    //subscription
+    app.post("/transactions", async (req, res) => {
+      const {
+        sessionId,
+        userId,
+        priceId,
+        userEmail,
+        userName,
+        userRole,
+        amount,
+        status,
+      } = req.body;
+      const isExist = await transactionCollection.findOne({
+        sessionId: sessionId,
+      });
+      if (isExist) {
+        return res.json({ msg: "Already exist" });
+      }
+      await transactionCollection.insertOne({
+        sessionId,
+        userEmail,
+        userId,
+        priceId,
+        userName,
+        userRole,
+        amount,
+        status,
+        createdAt: new Date(),
+      });
+      //update user role
+      await userCollection.updateOne(
+        {
+          _id: new ObjectId(userId),
+        },
+        {
+          $set: { plan: "premium" },
+        },
+      );
+
+      res.json({ msg: "Payment Success" });
+    });
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
