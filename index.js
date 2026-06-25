@@ -199,7 +199,7 @@ async function run() {
       },
     );
     //get opportunity by founderEmail
-    app.get("/api/opportunities", async (req, res) => {
+    app.get("/api/founderEmail/opportunities", async (req, res) => {
       const query = {};
       if (req.query.founderEmail) {
         query.founderEmail = req.query.founderEmail;
@@ -209,11 +209,21 @@ async function run() {
       res.send(result);
     });
 
-    //browse opportunities
+    //browse opportunities / public
     app.get("/api/opportunities", async (req, res) => {
-      const result = await opportunitieCollection.find();
-      res.send(result);
+      const { page = 1, limit = 12 } = req.query;
+      const skip = (Number(page) - 1) * Number(limit);
+      const result = await opportunitieCollection
+        .find()
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray();
+
+      const totalData = await opportunitieCollection.countDocuments();
+      const totalPage = Math.ceil(totalData / Number(limit));
+      res.send({ data: result, page: Number(page), totalPage });
     });
+
     //opportunity details
     app.get("/api/opportunities/:id", async (req, res) => {
       const { id } = req.params;
