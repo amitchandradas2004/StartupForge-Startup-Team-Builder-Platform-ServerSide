@@ -65,293 +65,290 @@ const verifyCollaborator = async (req, res, next) => {
   next();
 };
 
-async function run() {
+// async function run() {
+//   try {
+// await client.connect();
+
+client.connect(() => {console.log("connecting to db")}).catch(console.dir);
+
+const db = client.db(process.env.DB_NAME);
+const startupCollection = db.collection("startups");
+const opportunitieCollection = db.collection("opportunities");
+const applicationCollection = db.collection("applications");
+const userCollection = db.collection("user");
+const transactionCollection = db.collection("transactions");
+
+//profile update
+app.patch("/api/user", async (req, res) => {
+  const { email, ...updatedData } = req.body;
+
+  const result = await userCollection.updateOne(
+    { email },
+    { $set: updatedData },
+  );
+
+  res.send(result);
+});
+app.get("/api/user/:email", async (req, res) => {
   try {
-    await client.connect();
-    const db = client.db(process.env.DB_NAME);
-    const startupCollection = db.collection("startups");
-    const opportunitieCollection = db.collection("opportunities");
-    const applicationCollection = db.collection("applications");
-    const userCollection = db.collection("user");
-    const transactionCollection = db.collection("transactions");
+    const email = req.params.email;
 
-    //profile update
-    app.patch("/api/user", async (req, res) => {
-      const { email, ...updatedData } = req.body;
+    const user = await userCollection.findOne({ email });
 
-      const result = await userCollection.updateOne(
-        { email },
-        { $set: updatedData },
-      );
-
-      res.send(result);
-    });
-    app.get("/api/user/:email", async (req, res) => {
-      try {
-        const email = req.params.email;
-
-        const user = await userCollection.findOne({ email });
-
-        return res.send(user); // MUST be user, not result
-      } catch (err) {
-        // console.log(err);
-        res.status(500).send({ error: "Server error" });
-      }
-    });
-    // startups related api(founder)
-    app.post("/api/startups", verifyToken, verifyFounder, async (req, res) => {
-      const startup = {
-        ...req.body,
-        status: req.body.status || "pending",
-        createdAt: new Date(),
-      };
-      const result = await startupCollection.insertOne(startup);
-      res.send(result);
-    });
-    app.get("/api/startups", async (req, res) => {
-      const query = {};
-      if (req.query.founderEmail) {
-        query.founderEmail = req.query.founderEmail;
-      }
-      const cursor = startupCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-    //admin update startup status
-    app.patch("/api/startups:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedStartup = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          status: updatedStartup.status,
-        },
-      };
-      const result = await startupCollection.updateOne(filter, updatedDoc);
-      res.send(result);
-    });
-    //borwse startups
-    app.get("/api/startups", async (req, res) => {
-      const result = await startupCollection.find();
-      res.send(result);
-    });
-    // Update startup
-    app.patch("/api/startups/:id", async (req, res) => {
-      const { id } = req.params;
-      const updatedStartups = req.body;
-      const result = await startupCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { ...updatedStartups } },
-      );
-      res.send(result);
-    });
-    //delete startup
-    app.delete("/api/startups/:id", async (req, res) => {
-      try {
-        const { id } = req.params;
-        const result = await startupCollection.deleteOne({
-          _id: new ObjectId(id),
-        });
-
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({
-          message: "Failed to delete startup",
-          error: error.message,
-        });
-      }
-    });
-    // Opportynity Updating
-    app.patch("/api/opportunities/:id", async (req, res) => {
-      const { id } = req.params;
-      const updatedOpportunity = req.body;
-      const result = await opportunitieCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { ...updatedOpportunity } },
-      );
-      res.send(result);
-    });
-    // Delete opportunity
-    app.delete("/api/opportunities/:id", async (req, res) => {
-      try {
-        const { id } = req.params;
-        const result = await opportunitieCollection.deleteOne({
-          _id: new ObjectId(id),
-        });
-
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({
-          message: "Failed to delete startup",
-          error: error.message,
-        });
-      }
-    });
-    // Opportynity Posting by founder
-    app.post(
-      "/api/opportunities",
-      verifyToken,
-      verifyFounder,
-      async (req, res) => {
-        const opportunity = req.body;
-        const result = await opportunitieCollection.insertOne(opportunity);
-        res.send(result);
-      },
-    );
-    //get opportunity by founderEmail
-    app.get("/api/founderEmail/opportunities", async (req, res) => {
-      const query = {};
-      if (req.query.founderEmail) {
-        query.founderEmail = req.query.founderEmail;
-      }
-      const cursor = opportunitieCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-
-    //browse opportunities / public
-    app.get("/api/opportunities", async (req, res) => {
-      const { page = 1, limit = 12 } = req.query;
-      const skip = (Number(page) - 1) * Number(limit);
-      const result = await opportunitieCollection
-        .find()
-        .skip(skip)
-        .limit(Number(limit))
-        .toArray();
-
-      const totalData = await opportunitieCollection.countDocuments();
-      const totalPage = Math.ceil(totalData / Number(limit));
-      res.send({ data: result, page: Number(page), totalPage });
-    });
-
-    //opportunity details
-    app.get("/api/opportunities/:id", async (req, res) => {
-      const { id } = req.params;
-      const result = await opportunitieCollection.findOne({
-        _id: new ObjectId(id),
-      });
-      res.send(result);
-    });
-    // applications API
-    app.post(
-      "/api/applications",
-      verifyToken,
-      verifyCollaborator,
-      async (req, res) => {
-        const application = req.body;
-        const newApplication = {
-          ...application,
-          createdAt: new Date(),
-        };
-        const result = await applicationCollection.insertOne(newApplication);
-        res.send(result);
-      },
-    );
-    //get collaborator / founder all  applications
-    app.get("/api/applications", async (req, res) => {
-      const query = {};
-      if (req.query.applicantEmail) {
-        query.applicantEmail = req.query.applicantEmail;
-      }
-      if (req.query.founderEmail) {
-        query.founderEmail = req.query.founderEmail;
-      }
-      const cursor = applicationCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-    //get all applications
-    app.get("/api/applications", async (req, res) => {
-      const result = await applicationCollection.find();
-      res.send(result);
-    });
-    //get all users
-    app.get("/api/users", async (req, res) => {
-      const result = await userCollection.find().toArray();
-      res.send(result);
-    });
-    //admin update user status
-    app.patch("/api/users/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedUser = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          status: updatedUser.status,
-        },
-      };
-      const result = await userCollection.updateOne(filter, updatedDoc);
-      res.send(result);
-    });
-    //founder application manage
-    app.patch("/api/applications/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedApplication = req.body;
-      const filter = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          status: updatedApplication.status,
-        },
-      };
-      const result = await applicationCollection.updateOne(filter, updatedDoc);
-      res.send(result);
-    });
-    // Transactions api
-    app.get("/api/transactions", async (req, res) => {
-      const result = await transactionCollection.find().toArray();
-      res.send(result);
-    });
-    //subscription
-    app.post("/transactions", async (req, res) => {
-      const {
-        sessionId,
-        userId,
-        priceId,
-        userEmail,
-        userName,
-        userRole,
-        amount,
-        status,
-      } = req.body;
-      const isExist = await transactionCollection.findOne({
-        sessionId: sessionId,
-      });
-      if (isExist) {
-        return res.json({ msg: "Already exist" });
-      }
-      await transactionCollection.insertOne({
-        sessionId,
-        userEmail,
-        userId,
-        priceId,
-        userName,
-        userRole,
-        amount,
-        status,
-        createdAt: new Date(),
-      });
-      //update user role
-      await userCollection.updateOne(
-        {
-          _id: new ObjectId(userId),
-        },
-        {
-          $set: { plan: "premium" },
-        },
-      );
-
-      res.json({ msg: "Payment Success" });
-    });
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    return res.send(user); // MUST be user, not result
+  } catch (err) {
+    // console.log(err);
+    res.status(500).send({ error: "Server error" });
   }
-}
-run().catch(console.dir);
+});
+// startups related api(founder)
+app.post("/api/startups", verifyToken, verifyFounder, async (req, res) => {
+  const startup = {
+    ...req.body,
+    status: req.body.status || "pending",
+    createdAt: new Date(),
+  };
+  const result = await startupCollection.insertOne(startup);
+  res.send(result);
+});
+app.get("/api/startups", async (req, res) => {
+  const query = {};
+  if (req.query.founderEmail) {
+    query.founderEmail = req.query.founderEmail;
+  }
+  const cursor = startupCollection.find(query);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+//admin update startup status
+app.patch("/api/startups:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedStartup = req.body;
+  const filter = { _id: new ObjectId(id) };
+  const updatedDoc = {
+    $set: {
+      status: updatedStartup.status,
+    },
+  };
+  const result = await startupCollection.updateOne(filter, updatedDoc);
+  res.send(result);
+});
+//borwse startups
+app.get("/api/startups", async (req, res) => {
+  const result = await startupCollection.find();
+  res.send(result);
+});
+// Update startup
+app.patch("/api/startups/:id", async (req, res) => {
+  const { id } = req.params;
+  const updatedStartups = req.body;
+  const result = await startupCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { ...updatedStartups } },
+  );
+  res.send(result);
+});
+//delete startup
+app.delete("/api/startups/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await startupCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to delete startup",
+      error: error.message,
+    });
+  }
+});
+// Opportynity Updating
+app.patch("/api/opportunities/:id", async (req, res) => {
+  const { id } = req.params;
+  const updatedOpportunity = req.body;
+  const result = await opportunitieCollection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { ...updatedOpportunity } },
+  );
+  res.send(result);
+});
+// Delete opportunity
+app.delete("/api/opportunities/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await opportunitieCollection.deleteOne({
+      _id: new ObjectId(id),
+    });
+
+    res.send(result);
+  } catch (error) {
+    res.status(500).send({
+      message: "Failed to delete startup",
+      error: error.message,
+    });
+  }
+});
+// Opportynity Posting by founder
+app.post("/api/opportunities", verifyToken, verifyFounder, async (req, res) => {
+  const opportunity = req.body;
+  const result = await opportunitieCollection.insertOne(opportunity);
+  res.send(result);
+});
+//get opportunity by founderEmail
+app.get("/api/founderEmail/opportunities", async (req, res) => {
+  const query = {};
+  if (req.query.founderEmail) {
+    query.founderEmail = req.query.founderEmail;
+  }
+  const cursor = opportunitieCollection.find(query);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
+//browse opportunities / public
+app.get("/api/opportunities", async (req, res) => {
+  const { page = 1, limit = 12 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+  const result = await opportunitieCollection
+    .find()
+    .skip(skip)
+    .limit(Number(limit))
+    .toArray();
+
+  const totalData = await opportunitieCollection.countDocuments();
+  const totalPage = Math.ceil(totalData / Number(limit));
+  res.send({ data: result, page: Number(page), totalPage });
+});
+
+//opportunity details
+app.get("/api/opportunities/:id", async (req, res) => {
+  const { id } = req.params;
+  const result = await opportunitieCollection.findOne({
+    _id: new ObjectId(id),
+  });
+  res.send(result);
+});
+// applications API
+app.post(
+  "/api/applications",
+  verifyToken,
+  verifyCollaborator,
+  async (req, res) => {
+    const application = req.body;
+    const newApplication = {
+      ...application,
+      createdAt: new Date(),
+    };
+    const result = await applicationCollection.insertOne(newApplication);
+    res.send(result);
+  },
+);
+//get collaborator / founder all  applications
+app.get("/api/applications", async (req, res) => {
+  const query = {};
+  if (req.query.applicantEmail) {
+    query.applicantEmail = req.query.applicantEmail;
+  }
+  if (req.query.founderEmail) {
+    query.founderEmail = req.query.founderEmail;
+  }
+  const cursor = applicationCollection.find(query);
+  const result = await cursor.toArray();
+  res.send(result);
+});
+//get all applications
+app.get("/api/applications", async (req, res) => {
+  const result = await applicationCollection.find();
+  res.send(result);
+});
+//get all users
+app.get("/api/users", async (req, res) => {
+  const result = await userCollection.find().toArray();
+  res.send(result);
+});
+//admin update user status
+app.patch("/api/users/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedUser = req.body;
+  const filter = { _id: new ObjectId(id) };
+  const updatedDoc = {
+    $set: {
+      status: updatedUser.status,
+    },
+  };
+  const result = await userCollection.updateOne(filter, updatedDoc);
+  res.send(result);
+});
+//founder application manage
+app.patch("/api/applications/:id", async (req, res) => {
+  const id = req.params.id;
+  const updatedApplication = req.body;
+  const filter = { _id: new ObjectId(id) };
+  const updatedDoc = {
+    $set: {
+      status: updatedApplication.status,
+    },
+  };
+  const result = await applicationCollection.updateOne(filter, updatedDoc);
+  res.send(result);
+});
+// Transactions api
+app.get("/api/transactions", async (req, res) => {
+  const result = await transactionCollection.find().toArray();
+  res.send(result);
+});
+//subscription
+app.post("/transactions", async (req, res) => {
+  const {
+    sessionId,
+    userId,
+    priceId,
+    userEmail,
+    userName,
+    userRole,
+    amount,
+    status,
+  } = req.body;
+  const isExist = await transactionCollection.findOne({
+    sessionId: sessionId,
+  });
+  if (isExist) {
+    return res.json({ msg: "Already exist" });
+  }
+  await transactionCollection.insertOne({
+    sessionId,
+    userEmail,
+    userId,
+    priceId,
+    userName,
+    userRole,
+    amount,
+    status,
+    createdAt: new Date(),
+  });
+  //update user role
+  await userCollection.updateOne(
+    {
+      _id: new ObjectId(userId),
+    },
+    {
+      $set: { plan: "premium" },
+    },
+  );
+
+  res.json({ msg: "Payment Success" });
+});
+// await client.db("admin").command({ ping: 1 });
+//     console.log(
+//       "Pinged your deployment. You successfully connected to MongoDB!",
+//     );
+//   } finally {
+
+//   }
+// }
+// run().catch(console.dir);
 
 app.get("/", (req, res) => {
   res.send("Welcome to Start Up Forge!");
@@ -360,3 +357,5 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+module.exports = app;
