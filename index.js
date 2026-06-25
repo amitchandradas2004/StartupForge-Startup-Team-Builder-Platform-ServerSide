@@ -6,6 +6,7 @@ const dontenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { cursorTo } = require("node:readline");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dontenv.config();
 
 const uri = process.env.MONGODB_URI;
@@ -27,7 +28,26 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader || !authHeader.startsWith("Bearer")) {
+    return res.status(401).json({ msg: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ msg: "Unauthorized" });
+  }
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    next();
+  } catch (error) {
+    return res.status(401).json({ msg: "Unauthorized" });
+  }
+};
 async function run() {
   try {
     await client.connect();
@@ -57,12 +77,12 @@ async function run() {
 
         return res.send(user); // MUST be user, not result
       } catch (err) {
-        console.log(err);
+        // console.log(err);
         res.status(500).send({ error: "Server error" });
       }
     });
     // startups related api(founder)
-    app.post("/api/startups", async (req, res) => {
+    app.post("/api/startups", verifyToken, async (req, res) => {
       const startup = {
         ...req.body,
         status: req.body.status || "pending",
@@ -150,12 +170,13 @@ async function run() {
         });
       }
     });
-    // Opportynity Posting
-    app.post("/api/opportunities", async (req, res) => {
+    // Opportynity Posting by founder
+    app.post("/api/opportunities", verifyToken, async (req, res) => {
       const opportunity = req.body;
       const result = await opportunitieCollection.insertOne(opportunity);
       res.send(result);
     });
+    //get opportunity by founderEmail
     app.get("/api/opportunities", async (req, res) => {
       const query = {};
       if (req.query.founderEmail) {
@@ -165,6 +186,7 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+
     //browse opportunities
     app.get("/api/opportunities", async (req, res) => {
       const result = await opportunitieCollection.find();
@@ -179,7 +201,7 @@ async function run() {
       res.send(result);
     });
     // applications API
-    app.post("/api/applications", async (req, res) => {
+    app.post("/api/applications", verifyToken, async (req, res) => {
       const application = req.body;
       const newApplication = {
         ...application,
