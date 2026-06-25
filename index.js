@@ -43,11 +43,28 @@ const verifyToken = async (req, res, next) => {
   }
   try {
     const { payload } = await jwtVerify(token, JWKS);
+    req.user = payload;
     next();
   } catch (error) {
     return res.status(401).json({ msg: "Unauthorized" });
   }
 };
+
+const verifyFounder = async (req, res, next) => {
+  const user = req.user;
+  if (user.role !== "founder") {
+    return res.status(401).json({ msg: "Forbidden" });
+  }
+  next();
+};
+const verifyCollaborator = async (req, res, next) => {
+  const user = req.user;
+  if (user.role !== "collaborator") {
+    return res.status(401).json({ msg: "Forbidden" });
+  }
+  next();
+};
+
 async function run() {
   try {
     await client.connect();
@@ -82,7 +99,7 @@ async function run() {
       }
     });
     // startups related api(founder)
-    app.post("/api/startups", verifyToken, async (req, res) => {
+    app.post("/api/startups", verifyToken, verifyFounder, async (req, res) => {
       const startup = {
         ...req.body,
         status: req.body.status || "pending",
@@ -171,11 +188,16 @@ async function run() {
       }
     });
     // Opportynity Posting by founder
-    app.post("/api/opportunities", verifyToken, async (req, res) => {
-      const opportunity = req.body;
-      const result = await opportunitieCollection.insertOne(opportunity);
-      res.send(result);
-    });
+    app.post(
+      "/api/opportunities",
+      verifyToken,
+      verifyFounder,
+      async (req, res) => {
+        const opportunity = req.body;
+        const result = await opportunitieCollection.insertOne(opportunity);
+        res.send(result);
+      },
+    );
     //get opportunity by founderEmail
     app.get("/api/opportunities", async (req, res) => {
       const query = {};
@@ -201,15 +223,20 @@ async function run() {
       res.send(result);
     });
     // applications API
-    app.post("/api/applications", verifyToken, async (req, res) => {
-      const application = req.body;
-      const newApplication = {
-        ...application,
-        createdAt: new Date(),
-      };
-      const result = await applicationCollection.insertOne(newApplication);
-      res.send(result);
-    });
+    app.post(
+      "/api/applications",
+      verifyToken,
+      verifyCollaborator,
+      async (req, res) => {
+        const application = req.body;
+        const newApplication = {
+          ...application,
+          createdAt: new Date(),
+        };
+        const result = await applicationCollection.insertOne(newApplication);
+        res.send(result);
+      },
+    );
     //get collaborator / founder all  applications
     app.get("/api/applications", async (req, res) => {
       const query = {};
