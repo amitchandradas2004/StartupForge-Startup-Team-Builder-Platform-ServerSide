@@ -1,17 +1,11 @@
 # 🚀 StartUp Forge - Server
 
 The StartUp Forge Server powers the backend of the StartUp Forge platform. It provides secure APIs for authentication, startup management, opportunity posting, application tracking, and role-based access control.
-<!-- 
+
 ## 🌐 Live API
 
-Add your deployed API URL here:
-
-```bash
-https://your-server-url.vercel.app
-``` -->
-
----
-
+Add your deployed API URL here:  https://startupforge-server-alpha.vercel.app
+ 
 # ✨ Features
 
 ### 🔐 Authentication & Security

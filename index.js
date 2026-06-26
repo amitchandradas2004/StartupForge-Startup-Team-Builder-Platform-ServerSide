@@ -69,7 +69,11 @@ const verifyCollaborator = async (req, res, next) => {
 //   try {
 // await client.connect();
 
-client.connect(() => {console.log("connecting to db")}).catch(console.dir);
+client
+  .connect(() => {
+    console.log("connecting to db");
+  })
+  .catch(console.dir);
 
 const db = client.db(process.env.DB_NAME);
 const startupCollection = db.collection("startups");
@@ -79,7 +83,7 @@ const userCollection = db.collection("user");
 const transactionCollection = db.collection("transactions");
 
 //profile update
-app.patch("/api/user", async (req, res) => {
+app.patch("/api/collaborator/user", async (req, res) => {
   const { email, ...updatedData } = req.body;
 
   const result = await userCollection.updateOne(
@@ -89,6 +93,16 @@ app.patch("/api/user", async (req, res) => {
 
   res.send(result);
 });
+app.patch("/api/user", async (req, res) => {
+  const { email, name, image } = req.body;
+  const updatedData = { name, image };
+  const result = await userCollection.updateOne(
+    { email },
+    { $set: { name, image } },
+  );
+  res.send(result);
+});
+
 app.get("/api/user/:email", async (req, res) => {
   try {
     const email = req.params.email;
@@ -222,6 +236,11 @@ app.get("/api/opportunities", async (req, res) => {
   res.send({ data: result, page: Number(page), totalPage });
 });
 
+app.get("/api/all/opportunities", async (req, res) => {
+  const result = await opportunitieCollection.find().toArray();
+  res.send(result);
+});
+  
 //opportunity details
 app.get("/api/opportunities/:id", async (req, res) => {
   const { id } = req.params;
