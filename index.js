@@ -16,7 +16,7 @@ const PORT = process.env.PORT;
 app.use(
   cors({
     credentials: true,
-    origin: [process.env.CLIENT_URL],
+    origin: [process.env.CLIENT_URL,"https://startupforge-client-swart.vercel.app"],
   }),
 );
 app.use(express.json());
@@ -252,8 +252,8 @@ app.get("/api/opportunities/:id", async (req, res) => {
 // applications API
 app.post(
   "/api/applications",
-  verifyToken,
-  verifyCollaborator,
+  // verifyToken,
+  // verifyCollaborator,
   async (req, res) => {
     const application = req.body;
     const newApplication = {
